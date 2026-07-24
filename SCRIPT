@@ -49,7 +49,7 @@ end
 b.PlayerAdded:Connect(trackPlayer)
 
 local q, r, s = game:GetService('UserInputService'), pcall(function()
-    return loadstring(game:HttpGet('https://pastebin.com/raw/D65stg3r'))()
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/tontov/ScriptLibrary/refs/heads/main/Main'))()
 end)
 
 if not r then
