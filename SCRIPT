@@ -1,8 +1,4 @@
-local a, b, c, d, e = game.Players.LocalPlayer, game:GetService('Players'), game:GetService('RunService'), game:GetService('TweenService'), game:GetService('ReplicatedStorage')
-
-print('Script started loading...')
-
-local f, g, h, i, j, k, l, m, n, o, p = false, false, false, nil, nil, {}, false, 'Coin', false, false, nil
+local a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p = game.Players.LocalPlayer, game:GetService('Players'), game:GetService('RunService'), game:GetService('TweenService'), game:GetService('ReplicatedStorage'), false, false, false, nil, nil, {}, false, 'Coin', false, false, nil
 
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
@@ -53,12 +49,10 @@ end
 b.PlayerAdded:Connect(trackPlayer)
 
 local q, r, s = game:GetService('UserInputService'), pcall(function()
-    return loadstring(game:HttpGet('https://raw.githubusercontent.com/tontov/ScriptLibrary/refs/heads/main/Main'))()
+    return loadstring(game:HttpGet('https://pastebin.com/raw/D65stg3r'))()
 end)
 
 if not r then
-    warn('Failed to load library:', s)
-
     return
 end
 
@@ -109,7 +103,6 @@ local t, u = s:CreateWindow({
 }
 
 t:SetTheme(u.Dark)
-print('UI Library loaded successfully!')
 
 local v = t:AddTab({
     Title = 'Main',
@@ -132,8 +125,6 @@ t:AddButton({
         local w = a.Character
 
         if not w or not w.Parent then
-            warn('Character not found')
-
             return
         end
 
@@ -145,8 +136,6 @@ t:AddButton({
             if x then
                 x.Parent = w
             else
-                warn('Knife not found')
-
                 return
             end
         end
@@ -200,8 +189,6 @@ local function findMurderer()
     local E = D:FindFirstChild('GetPlayerData', true)
 
     if not E then
-        warn('GetPlayerData not found in ReplicatedStorage')
-
         return nil
     end
 
@@ -210,35 +197,23 @@ local function findMurderer()
     end)
 
     if not F then
-        warn('Failed to get player data: ' .. tostring(G))
-
         return nil
     end
     if not G then
-        warn('Roles data is nil')
-
         return nil
     end
-
-    print('=== Searching for Murderer ===')
 
     for H, I in ipairs(b:GetPlayers())do
         if I ~= b.LocalPlayer and I:GetAttribute('Alive') == true then
             local J = G[I.Name]
 
             if J and J.Role then
-                print('Player: ' .. I.Name .. ' | Role: ' .. J.Role)
-
                 if J.Role == 'Murderer' then
-                    print('Found murderer: ' .. I.Name)
-
                     return I
                 end
             end
         end
     end
-
-    warn('Murderer not found in player list')
 
     return nil
 end
@@ -303,56 +278,36 @@ local function createShootButton()
     end)
     E.MouseButton1Click:Connect(function()
         if not y then
-            print('=== SHOOT BUTTON CLICKED ===')
-
             local H = nil
 
             if a.Character and a.Character:FindFirstChild('Gun') then
                 H = a.Character.Gun
-
-                print('Gun found in Character')
             elseif a.Backpack and a.Backpack:FindFirstChild('Gun') then
                 H = a.Backpack.Gun
                 H.Parent = a.Character
-
-                print('Gun found in Backpack, equipped')
             end
             if not H then
-                warn('Gun not found!')
-
                 return
             end
-
-            print('Searching for murderer...')
 
             local I = findMurderer()
 
             if not I then
-                warn('Murderer not found!')
-
                 return
             end
-
-            print('Murderer found: ' .. I.Name)
 
             local J = I.Character
 
             if not J or not J:FindFirstChild('HumanoidRootPart') then
-                warn('Murderer character not found!')
-
                 return
             end
 
             local K, L, M = J.HumanoidRootPart, J:FindFirstChild('Torso') or J:FindFirstChild('UpperTorso'), J:FindFirstChild('Humanoid')
 
             if not L or not M then
-                warn('Murderer torso or humanoid not found!')
-
                 return
             end
             if not a.Character or not a.Character:FindFirstChild('HumanoidRootPart') then
-                warn('Player character not found!')
-
                 return
             end
 
@@ -369,16 +324,7 @@ local function createShootButton()
             local T, U = CFrame.new(R), H:FindFirstChild('ShootEvent') or H:FindFirstChild('Shoot')
 
             if U then
-                print('Firing shot with event: ' .. U.Name)
                 U:FireServer(S, T)
-                print(string.format('Shot fired at murderer: %s | Ping: %.0fms | Prediction: %.3fs', I.Name, O, P))
-            else
-                warn('ShootEvent not found in gun!')
-                print('Gun children:')
-
-                for V, W in pairs(H:GetChildren())do
-                    print(' - ' .. W.Name .. ' (' .. W.ClassName .. ')')
-                end
             end
         end
     end)
@@ -415,8 +361,6 @@ t:AddToggle({
     Tab = v,
     Callback = function(D)
         C = D
-
-        print('Magic Bullet set to: ' .. tostring(D))
     end,
 })
 t:AddSection({
@@ -512,7 +456,7 @@ t:AddToggle({
 })
 t:AddToggle({
     Title = 'Chams Innocent',
-    Description = 'Enable Chams for Innocents',
+    Description = 'Enable Chams for Innocent',
     Default = false,
     Tab = D,
     Callback = function(E)
@@ -583,7 +527,7 @@ t:AddToggle({
 })
 t:AddToggle({
     Title = 'Display Name',
-    Description = 'Show display name instead of normal name',
+    Description = 'Show display name instead of username',
     Default = false,
     Tab = D,
     Callback = function(E)
@@ -596,7 +540,7 @@ t:AddToggle({
 })
 t:AddToggle({
     Title = 'Normal Name',
-    Description = 'Show normal name',
+    Description = 'Show normal username',
     Default = true,
     Tab = D,
     Callback = function(E)
@@ -681,7 +625,7 @@ a.CharacterAdded:Connect(function(J)
 end)
 t:AddToggle({
     Title = 'Custom WalkSpeed',
-    Description = 'Enable custom walk speed (always active)',
+    Description = 'Enable custom walk speed',
     Default = false,
     Tab = E,
     Callback = function(J)
@@ -718,7 +662,7 @@ t:AddSlider({
 })
 t:AddToggle({
     Title = 'Custom JumpPower',
-    Description = 'Enable custom jump power (always active)',
+    Description = 'Enable custom jump power',
     Default = false,
     Tab = E,
     Callback = function(J)
@@ -777,7 +721,7 @@ task.spawn(function()
 end)
 t:AddToggle({
     Title = 'Custom FOV',
-    Description = 'Enable custom field of view (always active)',
+    Description = 'Enable custom field of view',
     Default = false,
     Tab = E,
     Callback = function(L)
@@ -847,7 +791,7 @@ a.CharacterAdded:Connect(function(M)
 end)
 t:AddToggle({
     Title = 'Force Field Body Parts',
-    Description = 'Set all body parts material to ForceField (persists through respawns)',
+    Description = 'Set all body parts material to ForceField',
     Default = false,
     Tab = E,
     Callback = function(M)
@@ -1197,8 +1141,6 @@ t:AddButton({
         local R = a.Character
 
         if not R or not R.Parent then
-            warn('Character not found')
-
             return
         end
 
@@ -1221,8 +1163,6 @@ t:AddButton({
         local R = a.Character
 
         if not R or not R.Parent then
-            warn('Character not found')
-
             return
         end
 
@@ -1245,8 +1185,6 @@ t:AddButton({
         local R = a.Character
 
         if not R or not R.Parent then
-            warn('Character not found')
-
             return
         end
 
@@ -1267,8 +1205,6 @@ t:AddButton({
                 end
             end
         end
-
-        warn('Murderer not found!')
     end,
 })
 t:AddButton({
@@ -1283,8 +1219,6 @@ t:AddButton({
         local R = a.Character
 
         if not R or not R.Parent then
-            warn('Character not found')
-
             return
         end
 
@@ -1305,8 +1239,6 @@ t:AddButton({
                 end
             end
         end
-
-        warn('Sheriff not found!')
     end,
 })
 t:AddSection({
@@ -1359,20 +1291,13 @@ local function playDance()
 
     X.AnimationId = 'rbxassetid://' .. tostring(S)
 
-    local Y, Z = pcall(function()
+    pcall(function()
         T = W:LoadAnimation(X)
         T.Looped = true
         T.Priority = Enum.AnimationPriority.Action
 
         T:Play(0.1, 1, 1)
     end)
-
-    if not Y then
-        warn('Failed to play dance: ' .. tostring(Z))
-    else
-        print('Dance playing: ' .. tostring(S))
-    end
-
     X:Destroy()
 end
 local function stopDance()
@@ -1403,8 +1328,6 @@ t:AddDropdown({
         if V then
             S = V
 
-            print('Selected dance ID: ' .. tostring(S))
-
             if R then
                 stopDance()
                 task.wait(0.2)
@@ -1420,7 +1343,7 @@ t:AddDropdown({
 })
 t:AddToggle({
     Title = 'Auto Dance',
-    Description = 'Automatically play selected dance (persists through respawns)',
+    Description = 'Automatically play selected dance',
     Default = false,
     Tab = E,
     Callback = function(V)
@@ -1479,8 +1402,6 @@ local function SkidFling(V)
             getgenv().OldPos = Y.CFrame
         end
         if _ and _.Sit then
-            warn(V.Name .. ' is sitting')
-
             return
         end
         if ab then
@@ -1558,8 +1479,6 @@ local function SkidFling(V)
             af(ab)
         elseif ad then
             af(ad)
-        else
-            warn(V.Name .. ' has no valid parts')
         end
 
         ag:Destroy()
@@ -1585,8 +1504,6 @@ local function SkidFling(V)
 
             workspace.FallenPartsDestroyHeight = getgenv().FPDH
         end
-    else
-        warn('Your character is not ready')
     end
 end
 local function FindPlayerByPartialName(aa)
@@ -1617,7 +1534,7 @@ end
 
 t:AddInput({
     Title = 'Player Search',
-    Description = "Enter player name or part of it (e.g., 'a' finds 'alex324523')",
+    Description = 'Enter player name or part of it',
     Tab = E,
     Callback = function(aa)
         local ab = FindPlayerByPartialName(aa)
@@ -1625,7 +1542,6 @@ t:AddInput({
         if ab then
             p = ab
 
-            print('Found and selected: ' .. ab.Name)
             t:Notify({
                 Title = 'Player Found',
                 Description = 'Selected: ' .. ab.Name,
@@ -1635,7 +1551,6 @@ t:AddInput({
             p = nil
 
             if aa ~= '' then
-                warn('Player not found: ' .. aa)
                 t:Notify({
                     Title = 'Not Found',
                     Description = 'No player found matching: ' .. aa,
@@ -1651,8 +1566,6 @@ t:AddButton({
     Tab = E,
     Callback = function()
         if o then
-            warn('Fling already active!')
-
             return
         end
 
@@ -1686,13 +1599,6 @@ t:AddButton({
 
                 o = false
             end)
-        else
-            warn('Murderer not found!')
-            t:Notify({
-                Title = 'Error',
-                Description = 'Murderer not found!',
-                Duration = 3,
-            })
         end
     end,
 })
@@ -1702,8 +1608,6 @@ t:AddButton({
     Tab = E,
     Callback = function()
         if o then
-            warn('Fling already active!')
-
             return
         end
 
@@ -1737,13 +1641,6 @@ t:AddButton({
 
                 o = false
             end)
-        else
-            warn('Sheriff not found!')
-            t:Notify({
-                Title = 'Error',
-                Description = 'Sheriff not found!',
-                Duration = 3,
-            })
         end
     end,
 })
@@ -1753,12 +1650,9 @@ t:AddButton({
     Tab = E,
     Callback = function()
         if o then
-            warn('Fling already active!')
-
             return
         end
         if not p or not p.Parent then
-            warn('No valid target selected!')
             t:Notify({
                 Title = 'Error',
                 Description = 'Please select a valid player first!',
@@ -1817,11 +1711,6 @@ local function getgun()
         local aa, ab = findmap(), nil
 
         if not aa then
-            return
-        end
-        if aa == 'None' then
-            print('map not found')
-
             return
         end
 
@@ -2066,7 +1955,5 @@ N.PlayerAdded:Connect(function(ad)
 end)
 q.InputBegan:Connect(function(ad)
     if ad == Keybind then
-        warn('You have pressed the minimize keybind!')
     end
 end)
-print('Script loaded completely!')
