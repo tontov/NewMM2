@@ -52,8 +52,17 @@ local q, r, s = game:GetService('UserInputService'), pcall(function()
     return loadstring(game:HttpGet('https://raw.githubusercontent.com/tontov/ScriptLibrary/refs/heads/main/Main'))()
 end)
 
-if not r then
+if not r or not s then
+    warn('Failed to load UI library')
+
     return
+end
+if s.ShowLoading then
+    local t = s:ShowLoading()
+
+    while not t() do
+        task.wait()
+    end
 end
 
 local t, u = s:CreateWindow({
@@ -113,6 +122,18 @@ t:AddSection({
     Name = 'Murder Functions',
     Tab = v,
 })
+
+local w = false
+
+t:AddToggle({
+    Title = 'Auto Kill All',
+    Description = 'Automatically kill all players when you are murderer',
+    Default = false,
+    Tab = v,
+    Callback = function(x)
+        w = x
+    end,
+})
 t:AddButton({
     Title = 'Kill All',
     Description = 'Kill All Innocents',
@@ -122,94 +143,140 @@ t:AddButton({
             return
         end
 
-        local w = a.Character
+        local x = a.Character
 
-        if not w or not w.Parent then
+        if not x or not x.Parent then
             return
         end
 
-        local x = w:FindFirstChild('Knife')
+        local y = x:FindFirstChild('Knife')
 
-        if not x then
-            x = a.Backpack:FindFirstChild('Knife')
+        if not y then
+            y = a.Backpack:FindFirstChild('Knife')
 
-            if x then
-                x.Parent = w
+            if y then
+                y.Parent = x
             else
+                t:Notify({
+                    Title = 'No Knife',
+                    Description = 'You need to be the murderer!',
+                    Duration = 3,
+                })
+
                 return
             end
         end
 
-        for y, z in pairs(game.Players:GetPlayers())do
-            if z ~= game.Players.LocalPlayer and z.Character then
-                for A, B in pairs(z.Character:GetDescendants())do
-                    if B:IsA('BasePart') then
-                        B.CanCollide = false
-                    end
+        for z, A in pairs(game.Players:GetPlayers())do
+            if A ~= a and A.Character and A.Character:FindFirstChild('Head') then
+                pcall(function()
+                    y.Events.KnifeStabbed:FireServer()
+                    y.Events.HandleTouched:FireServer(A.Character.Head)
+                end)
+                task.wait(0.05)
+            end
+        end
+
+        t:Notify({
+            Title = 'Kill All',
+            Description = 'Attempted to kill all players',
+            Duration = 2,
+        })
+    end,
+})
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+
+        if w and not autoKillWhenFull and a and a.Character then
+            local x = a.Character:FindFirstChild('Knife') or a.Backpack:FindFirstChild('Knife')
+
+            if x then
+                if x.Parent == a.Backpack then
+                    x.Parent = a.Character
                 end
 
-                local A = game.Players.LocalPlayer.Character
-
-                if A then
-                    local B = A:FindFirstChild('HumanoidRootPart')
-
-                    if B then
-                        local C, D = B.CFrame + B.CFrame.LookVector * 3, z.Character:FindFirstChild('HumanoidRootPart')
-
-                        D.Size = Vector3.new(5, 5, 5)
-
-                        if D then
-                            D.CFrame = C
-                            D.Anchored = true
-
-                            game:GetService('VirtualInputManager'):SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                            game:GetService('VirtualInputManager'):SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                        end
+                for y, z in pairs(game.Players:GetPlayers())do
+                    if z ~= a and z.Character and z.Character:FindFirstChild('Head') then
+                        pcall(function()
+                            x.Events.KnifeStabbed:FireServer()
+                            x.Events.HandleTouched:FireServer(z.Character.Head)
+                        end)
+                        task.wait(0.05)
                     end
                 end
             end
         end
-    end,
-})
+    end
+end)
+
+local function getPlayerRole()
+    local x = game:GetService('ReplicatedStorage')
+    local y = x:FindFirstChild('GetPlayerData', true)
+
+    if not y then
+        return nil
+    end
+
+    local z, A = pcall(function()
+        return y:InvokeServer()
+    end)
+
+    if not z or not A then
+        return nil
+    end
+
+    local B = A[a.Name]
+
+    if B and B.Role then
+        return B.Role
+    end
+
+    return nil
+end
+local function isMurderer()
+    return getPlayerRole() == 'Murderer'
+end
+
 t:AddSection({
     Name = 'Sheriff Functions',
     Tab = v,
 })
 
-local w, x, y, z, A, B, C = false, nil, false, nil, nil, 1.25, false
+local x, y, z, A, B, C, D, E = false, false, nil, false, nil, nil, 1.25, false
 
 local function getPing()
-    local D = game:GetService('Stats')
-    local E = D.Network.ServerStatsItem['Data Ping']:GetValue()
+    local F = game:GetService('Stats')
+    local G = F.Network.ServerStatsItem['Data Ping']:GetValue()
 
-    return E
+    return G
 end
 local function findMurderer()
-    local D = game:GetService('ReplicatedStorage')
-    local E = D:FindFirstChild('GetPlayerData', true)
+    local F = game:GetService('ReplicatedStorage')
+    local G = F:FindFirstChild('GetPlayerData', true)
 
-    if not E then
-        return nil
-    end
-
-    local F, G = pcall(function()
-        return E:InvokeServer()
-    end)
-
-    if not F then
-        return nil
-    end
     if not G then
         return nil
     end
 
-    for H, I in ipairs(b:GetPlayers())do
-        if I ~= b.LocalPlayer and I:GetAttribute('Alive') == true then
-            local J = G[I.Name]
+    local H, I = pcall(function()
+        return G:InvokeServer()
+    end)
 
-            if J and J.Role then
-                if J.Role == 'Murderer' then
-                    return I
+    if not H then
+        return nil
+    end
+    if not I then
+        return nil
+    end
+
+    for J, K in ipairs(b:GetPlayers())do
+        if K ~= b.LocalPlayer and K:GetAttribute('Alive') == true then
+            local L = I[K.Name]
+
+            if L and L.Role then
+                if L.Role == 'Murderer' then
+                    return K
                 end
             end
         end
@@ -217,137 +284,170 @@ local function findMurderer()
 
     return nil
 end
+local function shootMurderer()
+    local F = nil
+
+    if a.Character and a.Character:FindFirstChild('Gun') then
+        F = a.Character.Gun
+    elseif a.Backpack and a.Backpack:FindFirstChild('Gun') then
+        F = a.Backpack.Gun
+        F.Parent = a.Character
+    end
+    if not F then
+        return false
+    end
+
+    local G = findMurderer()
+
+    if not G then
+        return false
+    end
+
+    local H = G.Character
+
+    if not H or not H:FindFirstChild('HumanoidRootPart') then
+        return false
+    end
+
+    local I, J, K = H.HumanoidRootPart, H:FindFirstChild('Torso') or H:FindFirstChild('UpperTorso'), H:FindFirstChild('Humanoid')
+
+    if not J or not K then
+        return false
+    end
+    if not a.Character or not a.Character:FindFirstChild('HumanoidRootPart') then
+        return false
+    end
+
+    local L, M = a.Character.HumanoidRootPart, getPing()
+    local N, O = (M / 1000) * D, I.Velocity
+    local P, Q = O.Magnitude, nil
+
+    if P < 1 then
+        Q = J.Position
+    else
+        Q = J.Position + (O * N)
+    end
+
+    local R
+
+    if E then
+        R = CFrame.new(J.Position, Q)
+    else
+        R = CFrame.new(L.Position, Q)
+    end
+
+    local S, T = CFrame.new(Q), F:FindFirstChild('ShootEvent') or F:FindFirstChild('Shoot')
+
+    if T then
+        T:FireServer(R, S)
+
+        return true
+    end
+
+    return false
+end
 local function createShootButton()
-    if x then
+    if z then
         return
     end
 
-    local D = Instance.new('ScreenGui')
+    local F = Instance.new('ScreenGui')
 
-    D.Name = 'ShootButtonGui'
-    D.ResetOnSpawn = false
-    D.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    D.Parent = game:GetService('CoreGui')
+    F.Name = 'ShootButtonGui'
+    F.ResetOnSpawn = false
+    F.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    F.Parent = game:GetService('CoreGui')
 
-    local E = Instance.new('ImageButton')
+    local G = Instance.new('ImageButton')
 
-    E.Name = 'ShootButton'
-    E.Size = UDim2.new(0, 80, 0, 80)
-    E.Position = UDim2.new(0.5, -40, 0.5, -40)
-    E.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    E.BackgroundTransparency = 0.3
-    E.BorderSizePixel = 0
-    E.Parent = D
+    G.Name = 'ShootButton'
+    G.Size = UDim2.new(0, 80, 0, 80)
+    G.Position = UDim2.new(0.5, -40, 0.5, -40)
+    G.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    G.BackgroundTransparency = 0.3
+    G.BorderSizePixel = 0
+    G.Parent = F
 
-    local F = Instance.new('UICorner')
+    local H = Instance.new('UICorner')
 
-    F.CornerRadius = UDim.new(1, 0)
-    F.Parent = E
+    H.CornerRadius = UDim.new(1, 0)
+    H.Parent = G
 
-    local G = Instance.new('TextLabel')
+    local I = Instance.new('TextLabel')
 
-    G.Size = UDim2.new(1, 0, 1, 0)
-    G.BackgroundTransparency = 1
-    G.Text = '\u{1f52b}'
-    G.TextSize = 32
-    G.TextColor3 = Color3.fromRGB(255, 255, 255)
-    G.Font = Enum.Font.GothamBold
-    G.Parent = E
+    I.Size = UDim2.new(1, 0, 1, 0)
+    I.BackgroundTransparency = 1
+    I.Text = '\u{1f52b}'
+    I.TextSize = 32
+    I.TextColor3 = Color3.fromRGB(255, 255, 255)
+    I.Font = Enum.Font.GothamBold
+    I.Parent = G
 
-    E.InputBegan:Connect(function(H)
-        if H.UserInputType == Enum.UserInputType.MouseButton1 or H.UserInputType == Enum.UserInputType.Touch then
-            y = true
-            z = H.Position
-            A = E.Position
+    G.InputBegan:Connect(function(J)
+        if J.UserInputType == Enum.UserInputType.MouseButton1 or J.UserInputType == Enum.UserInputType.Touch then
+            A = true
+            B = J.Position
+            C = G.Position
 
-            H.Changed:Connect(function()
-                if H.UserInputState == Enum.UserInputState.End then
-                    y = false
+            J.Changed:Connect(function()
+                if J.UserInputState == Enum.UserInputState.End then
+                    A = false
                 end
             end)
         end
     end)
-    E.InputChanged:Connect(function(H)
-        if H.UserInputType == Enum.UserInputType.MouseMovement or H.UserInputType == Enum.UserInputType.Touch then
-            if y then
-                local I = H.Position - z
+    G.InputChanged:Connect(function(J)
+        if J.UserInputType == Enum.UserInputType.MouseMovement or J.UserInputType == Enum.UserInputType.Touch then
+            if A then
+                local K = J.Position - B
 
-                E.Position = UDim2.new(A.X.Scale, A.X.Offset + I.X, A.Y.Scale, A.Y.Offset + I.Y)
+                G.Position = UDim2.new(C.X.Scale, C.X.Offset + K.X, C.Y.Scale, C.Y.Offset + K.Y)
             end
         end
     end)
-    E.MouseButton1Click:Connect(function()
-        if not y then
-            local H = nil
-
-            if a.Character and a.Character:FindFirstChild('Gun') then
-                H = a.Character.Gun
-            elseif a.Backpack and a.Backpack:FindFirstChild('Gun') then
-                H = a.Backpack.Gun
-                H.Parent = a.Character
-            end
-            if not H then
-                return
-            end
-
-            local I = findMurderer()
-
-            if not I then
-                return
-            end
-
-            local J = I.Character
-
-            if not J or not J:FindFirstChild('HumanoidRootPart') then
-                return
-            end
-
-            local K, L, M = J.HumanoidRootPart, J:FindFirstChild('Torso') or J:FindFirstChild('UpperTorso'), J:FindFirstChild('Humanoid')
-
-            if not L or not M then
-                return
-            end
-            if not a.Character or not a.Character:FindFirstChild('HumanoidRootPart') then
-                return
-            end
-
-            local N, O = a.Character.HumanoidRootPart, getPing()
-            local P, Q = (O / 1000) * B, K.Velocity
-            local R, S = L.Position + (Q * P), nil
-
-            if C then
-                S = CFrame.new(L.Position, R)
-            else
-                S = CFrame.new(N.Position, R)
-            end
-
-            local T, U = CFrame.new(R), H:FindFirstChild('ShootEvent') or H:FindFirstChild('Shoot')
-
-            if U then
-                U:FireServer(S, T)
-            end
+    G.MouseButton1Click:Connect(function()
+        if not A then
+            shootMurderer()
         end
     end)
 
-    x = D
+    z = F
 end
 local function removeShootButton()
-    if x then
-        x:Destroy()
+    if z then
+        z:Destroy()
 
-        x = nil
+        z = nil
     end
 end
 
+t:AddToggle({
+    Title = 'Auto Shoot Murderer',
+    Description = 'Automatically shoot the murderer',
+    Default = false,
+    Tab = v,
+    Callback = function(F)
+        y = F
+    end,
+})
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+
+        if y then
+            shootMurderer()
+        end
+    end
+end)
 t:AddToggle({
     Title = 'Auto Shoot Button',
     Description = 'Creates a draggable button to shoot the murderer',
     Default = false,
     Tab = v,
-    Callback = function(D)
-        w = D
+    Callback = function(F)
+        x = F
 
-        if D then
+        if F then
             createShootButton()
         else
             removeShootButton()
@@ -359,8 +459,8 @@ t:AddToggle({
     Description = 'First argument will be set to murderer position',
     Default = false,
     Tab = v,
-    Callback = function(D)
-        C = D
+    Callback = function(F)
+        E = F
     end,
 })
 t:AddSection({
@@ -372,8 +472,8 @@ t:AddToggle({
     Description = 'Automatically grabbing gun if sheriff died',
     Default = false,
     Tab = v,
-    Callback = function(D)
-        g = D
+    Callback = function(F)
+        g = F
     end,
 })
 t:AddSection({
@@ -382,35 +482,35 @@ t:AddSection({
 })
 
 local function returncoincontainer()
-    for D, E in pairs(workspace:GetChildren())do
-        if E:FindFirstChild('CoinContainer') and E:IsA('Model') then
-            return E:FindFirstChild('CoinContainer')
+    for F, G in pairs(workspace:GetChildren())do
+        if G:FindFirstChild('CoinContainer') and G:IsA('Model') then
+            return G:FindFirstChild('CoinContainer')
         end
     end
 
     return nil
 end
-local function FindNearestCoin(D)
-    if not D then
+local function FindNearestCoin(F)
+    if not F then
         return nil, math.huge
     end
 
-    local E, F = nil, math.huge
+    local G, H = nil, math.huge
 
-    for G, H in pairs(D:GetChildren())do
-        if H:GetAttribute('CoinID') == 'Coin' and H:FindFirstChild('TouchInterest') and H.Transparency == 1 then
+    for I, J in pairs(F:GetChildren())do
+        if J:GetAttribute('CoinID') == 'Coin' and J:FindFirstChild('TouchInterest') and J.Transparency == 1 then
             if a.Character and a.Character:FindFirstChild('HumanoidRootPart') then
-                local I = (a.Character.HumanoidRootPart.Position - H.Position).Magnitude
+                local K = (a.Character.HumanoidRootPart.Position - J.Position).Magnitude
 
-                if I < F then
-                    E = H
-                    F = I
+                if K < H then
+                    G = J
+                    H = K
                 end
             end
         end
     end
 
-    return E, F
+    return G, H
 end
 
 t:AddToggle({
@@ -418,122 +518,122 @@ t:AddToggle({
     Description = 'Automatically farm coins with noclip',
     Default = false,
     Tab = v,
-    Callback = function(D)
-        h = D
+    Callback = function(F)
+        h = F
 
-        if not D then
+        if not F then
             l = false
         end
     end,
 })
 
-local D = t:AddTab({
+local F = t:AddTab({
     Title = 'Visuals',
     Icon = 'rbxassetid://11963373994',
 })
 
 t:AddSection({
     Name = 'Chams',
-    Tab = D,
+    Tab = F,
 })
 t:AddToggle({
     Title = 'Chams Murderer',
     Description = 'Enable Chams for Murderer',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_SETTINGS.Murderer = E
+    Tab = F,
+    Callback = function(G)
+        ESP_SETTINGS.Murderer = G
     end,
 })
 t:AddToggle({
     Title = 'Chams Sheriff',
     Description = 'Enable Chams for Sheriff',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_SETTINGS.Sheriff = E
+    Tab = F,
+    Callback = function(G)
+        ESP_SETTINGS.Sheriff = G
     end,
 })
 t:AddToggle({
     Title = 'Chams Innocent',
     Description = 'Enable Chams for Innocent',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_SETTINGS.Innocent = E
+    Tab = F,
+    Callback = function(G)
+        ESP_SETTINGS.Innocent = G
     end,
 })
 t:AddToggle({
     Title = 'Chams Hero',
     Description = 'Enable Chams for Hero',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_SETTINGS.Hero = E
+    Tab = F,
+    Callback = function(G)
+        ESP_SETTINGS.Hero = G
     end,
 })
 t:AddSection({
     Name = 'ESP',
-    Tab = D,
+    Tab = F,
 })
 t:AddToggle({
     Title = 'ESP Murderer',
     Description = 'Show Murderer name above head',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        NAME_ESP_SETTINGS.Murderer = E
+    Tab = F,
+    Callback = function(G)
+        NAME_ESP_SETTINGS.Murderer = G
     end,
 })
 t:AddToggle({
     Title = 'ESP Sheriff',
     Description = 'Show Sheriff name above head',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        NAME_ESP_SETTINGS.Sheriff = E
+    Tab = F,
+    Callback = function(G)
+        NAME_ESP_SETTINGS.Sheriff = G
     end,
 })
 t:AddToggle({
     Title = 'ESP Innocent',
     Description = 'Show Innocent name above head',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        NAME_ESP_SETTINGS.Innocent = E
+    Tab = F,
+    Callback = function(G)
+        NAME_ESP_SETTINGS.Innocent = G
     end,
 })
 t:AddToggle({
     Title = 'ESP Hero',
     Description = 'Show Hero name above head',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        NAME_ESP_SETTINGS.Hero = E
+    Tab = F,
+    Callback = function(G)
+        NAME_ESP_SETTINGS.Hero = G
     end,
 })
 t:AddSection({
     Name = 'ESP Customization',
-    Tab = D,
+    Tab = F,
 })
 t:AddToggle({
     Title = '2D Box',
     Description = 'Show 2D box around player',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_CUSTOMIZATION.Box2D = E
+    Tab = F,
+    Callback = function(G)
+        ESP_CUSTOMIZATION.Box2D = G
     end,
 })
 t:AddToggle({
     Title = 'Display Name',
     Description = 'Show display name instead of username',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_CUSTOMIZATION.DisplayName = E
+    Tab = F,
+    Callback = function(G)
+        ESP_CUSTOMIZATION.DisplayName = G
 
-        if E then
+        if G then
             ESP_CUSTOMIZATION.NormalName = false
         end
     end,
@@ -542,11 +642,11 @@ t:AddToggle({
     Title = 'Normal Name',
     Description = 'Show normal username',
     Default = true,
-    Tab = D,
-    Callback = function(E)
-        ESP_CUSTOMIZATION.NormalName = E
+    Tab = F,
+    Callback = function(G)
+        ESP_CUSTOMIZATION.NormalName = G
 
-        if E then
+        if G then
             ESP_CUSTOMIZATION.DisplayName = false
         end
     end,
@@ -555,13 +655,13 @@ t:AddToggle({
     Title = 'Avatar Display',
     Description = 'Show player avatar above name',
     Default = false,
-    Tab = D,
-    Callback = function(E)
-        ESP_CUSTOMIZATION.AvatarDisplay = E
+    Tab = F,
+    Callback = function(G)
+        ESP_CUSTOMIZATION.AvatarDisplay = G
     end,
 })
 
-local E = t:AddTab({
+local G = t:AddTab({
     Title = 'Misc',
     Icon = 'rbxassetid://11963373994',
 })
@@ -569,33 +669,33 @@ local E = t:AddTab({
 t:AddToggle({
     Title = 'Anti-Fling',
     Description = 'Anti-Fling',
-    Tab = E,
-    Callback = function(F)
-        f = F
+    Tab = G,
+    Callback = function(H)
+        f = H
     end,
 })
 t:AddSection({
     Name = 'Character Modifiers',
-    Tab = E,
+    Tab = G,
 })
 
-local F, G, H, I = false, false, 16, 50
+local H, I, J, K = false, false, 16, 50
 
 local function applyWalkSpeed()
-    if F and a.Character then
-        local J = a.Character:FindFirstChildOfClass('Humanoid')
+    if H and a.Character then
+        local L = a.Character:FindFirstChildOfClass('Humanoid')
 
-        if J then
-            J.WalkSpeed = H
+        if L then
+            L.WalkSpeed = J
         end
     end
 end
 local function applyJumpPower()
-    if G and a.Character then
-        local J = a.Character:FindFirstChildOfClass('Humanoid')
+    if I and a.Character then
+        local L = a.Character:FindFirstChildOfClass('Humanoid')
 
-        if J then
-            J.JumpPower = I
+        if L then
+            L.JumpPower = K
         end
     end
 end
@@ -604,22 +704,22 @@ task.spawn(function()
     while true do
         c.Heartbeat:Wait()
 
-        if F then
+        if H then
             applyWalkSpeed()
         end
-        if G then
+        if I then
             applyJumpPower()
         end
     end
 end)
-a.CharacterAdded:Connect(function(J)
-    J:WaitForChild('Humanoid')
+a.CharacterAdded:Connect(function(L)
+    L:WaitForChild('Humanoid')
     task.wait(0.1)
 
-    if F then
+    if H then
         applyWalkSpeed()
     end
-    if G then
+    if I then
         applyJumpPower()
     end
 end)
@@ -627,18 +727,18 @@ t:AddToggle({
     Title = 'Custom WalkSpeed',
     Description = 'Enable custom walk speed',
     Default = false,
-    Tab = E,
-    Callback = function(J)
-        F = J
+    Tab = G,
+    Callback = function(L)
+        H = L
 
-        if J then
+        if L then
             applyWalkSpeed()
         else
             if a.Character then
-                local K = a.Character:FindFirstChildOfClass('Humanoid')
+                local M = a.Character:FindFirstChildOfClass('Humanoid')
 
-                if K then
-                    K.WalkSpeed = 16
+                if M then
+                    M.WalkSpeed = 16
                 end
             end
         end
@@ -647,15 +747,15 @@ t:AddToggle({
 t:AddSlider({
     Title = 'WalkSpeed Value',
     Description = 'Set custom walk speed value',
-    Tab = E,
+    Tab = G,
     Default = 16,
     MinValue = 16,
     MaxValue = 200,
     AllowDecimals = false,
-    Callback = function(J)
-        H = J
+    Callback = function(L)
+        J = L
 
-        if F then
+        if H then
             applyWalkSpeed()
         end
     end,
@@ -664,18 +764,18 @@ t:AddToggle({
     Title = 'Custom JumpPower',
     Description = 'Enable custom jump power',
     Default = false,
-    Tab = E,
-    Callback = function(J)
-        G = J
+    Tab = G,
+    Callback = function(L)
+        I = L
 
-        if J then
+        if L then
             applyJumpPower()
         else
             if a.Character then
-                local K = a.Character:FindFirstChildOfClass('Humanoid')
+                local M = a.Character:FindFirstChildOfClass('Humanoid')
 
-                if K then
-                    K.JumpPower = 50
+                if M then
+                    M.JumpPower = 50
                 end
             end
         end
@@ -684,28 +784,28 @@ t:AddToggle({
 t:AddSlider({
     Title = 'JumpPower Value',
     Description = 'Set custom jump power value',
-    Tab = E,
+    Tab = G,
     Default = 50,
     MinValue = 50,
     MaxValue = 200,
     AllowDecimals = false,
-    Callback = function(J)
-        I = J
+    Callback = function(L)
+        K = L
 
-        if G then
+        if I then
             applyJumpPower()
         end
     end,
 })
 
-local J, K = false, 70
+local L, M = false, 70
 
 local function applyFOV()
-    if J then
-        local L = workspace.CurrentCamera
+    if L then
+        local N = workspace.CurrentCamera
 
-        if L then
-            L.FieldOfView = K
+        if N then
+            N.FieldOfView = M
         end
     end
 end
@@ -714,7 +814,7 @@ task.spawn(function()
     while true do
         c.Heartbeat:Wait()
 
-        if J then
+        if L then
             applyFOV()
         end
     end
@@ -723,17 +823,17 @@ t:AddToggle({
     Title = 'Custom FOV',
     Description = 'Enable custom field of view',
     Default = false,
-    Tab = E,
-    Callback = function(L)
-        J = L
+    Tab = G,
+    Callback = function(N)
+        L = N
 
-        if L then
+        if N then
             applyFOV()
         else
-            local M = workspace.CurrentCamera
+            local O = workspace.CurrentCamera
 
-            if M then
-                M.FieldOfView = 70
+            if O then
+                O.FieldOfView = 70
             end
         end
     end,
@@ -741,33 +841,33 @@ t:AddToggle({
 t:AddSlider({
     Title = 'FOV Value',
     Description = 'Set custom field of view value',
-    Tab = E,
+    Tab = G,
     Default = 70,
     MinValue = 70,
     MaxValue = 120,
     AllowDecimals = false,
-    Callback = function(L)
-        K = L
+    Callback = function(N)
+        M = N
 
-        if J then
+        if L then
             applyFOV()
         end
     end,
 })
 
-local L = false
+local N = false
 
 local function applyForceFieldMaterial()
-    if not L then
+    if not N then
         return
     end
     if not a.Character then
         return
     end
 
-    for M, N in pairs(a.Character:GetDescendants())do
-        if N:IsA('BasePart') or N:IsA('MeshPart') then
-            N.Material = Enum.Material.ForceField
+    for O, P in pairs(a.Character:GetDescendants())do
+        if P:IsA('BasePart') or P:IsA('MeshPart') then
+            P.Material = Enum.Material.ForceField
         end
     end
 end
@@ -776,16 +876,16 @@ task.spawn(function()
     while true do
         c.Heartbeat:Wait()
 
-        if L then
+        if N then
             applyForceFieldMaterial()
         end
     end
 end)
-a.CharacterAdded:Connect(function(M)
-    M:WaitForChild('Humanoid')
+a.CharacterAdded:Connect(function(O)
+    O:WaitForChild('Humanoid')
     task.wait(0.1)
 
-    if L then
+    if N then
         applyForceFieldMaterial()
     end
 end)
@@ -793,11 +893,11 @@ t:AddToggle({
     Title = 'Force Field Body Parts',
     Description = 'Set all body parts material to ForceField',
     Default = false,
-    Tab = E,
-    Callback = function(M)
-        L = M
+    Tab = G,
+    Callback = function(O)
+        N = O
 
-        if M then
+        if O then
             applyForceFieldMaterial()
             t:Notify({
                 Title = 'ForceField Enabled',
@@ -806,9 +906,9 @@ t:AddToggle({
             })
         else
             if a.Character then
-                for N, O in pairs(a.Character:GetDescendants())do
-                    if O:IsA('BasePart') or O:IsA('MeshPart') then
-                        O.Material = Enum.Material.Plastic
+                for P, Q in pairs(a.Character:GetDescendants())do
+                    if Q:IsA('BasePart') or Q:IsA('MeshPart') then
+                        Q.Material = Enum.Material.Plastic
                     end
                 end
             end
@@ -822,7 +922,321 @@ t:AddToggle({
     end,
 })
 
-local M = t:AddTab({
+local O, P = t:AddTab({
+    Title = 'Spawner',
+    Icon = 'rbxassetid://11963373994',
+}), {
+    {
+        original = 'Harvester',
+        custom = 'Harvester',
+    },
+    {
+        original = 'Gingerscope',
+        custom = 'Gingerscope',
+    },
+    {
+        original = 'Snowcannon',
+        custom = 'Snowcannon',
+    },
+    {
+        original = 'Bauble',
+        custom = 'Bauble',
+    },
+    {
+        original = 'BaubleChroma',
+        custom = 'BaubleChroma',
+    },
+    {
+        original = 'Icepiercer',
+        custom = 'Icepiercer',
+    },
+    {
+        original = 'TreeGun2023',
+        custom = 'Evergun',
+    },
+    {
+        original = 'TreeKnife2023',
+        custom = 'Evergreen',
+    },
+    {
+        original = 'TreeGun2023Chroma',
+        custom = 'Chroma Evergun',
+    },
+    {
+        original = 'TreeKnife2023Chroma',
+        custom = 'Chroma Evergreen',
+    },
+    {
+        original = 'Bloom',
+        custom = 'Bloom',
+    },
+    {
+        original = 'Flora',
+        custom = 'Flora',
+    },
+    {
+        original = 'TravelerAxe',
+        custom = 'Traveler Axe',
+    },
+    {
+        original = 'TravelerGun',
+        custom = 'Traveler Gun',
+    },
+    {
+        original = 'TravelerAxeChroma',
+        custom = 'Chroma Traveler Axe',
+    },
+    {
+        original = 'TravelerGunChroma',
+        custom = 'Chroma Traveler Gun',
+    },
+    {
+        original = 'Celestial',
+        custom = 'Celestial',
+    },
+    {
+        original = 'Constellation',
+        custom = 'Constellation',
+    },
+    {
+        original = 'ConstellationChroma',
+        custom = 'Chroma Constellation',
+    },
+    {
+        original = 'Candy',
+        custom = 'Candy',
+    },
+    {
+        original = 'Sugar',
+        custom = 'Sugar',
+    },
+    {
+        original = 'Darksword',
+        custom = 'Darksword',
+    },
+    {
+        original = 'Darkshot',
+        custom = 'Darkshot',
+    },
+    {
+        original = 'VampireAxe',
+        custom = 'Vampire Axe',
+    },
+    {
+        original = 'VampireGun',
+        custom = 'Vampire Gun',
+    },
+    {
+        original = 'SwirlyAxe',
+        custom = 'Swirly Axe',
+    },
+    {
+        original = 'SwirlyGun',
+        custom = 'Swirly Gun',
+    },
+    {
+        original = 'Flowerwood',
+        custom = 'Flowerwood',
+    },
+    {
+        original = 'FlowerwoodGun',
+        custom = 'Flowerwood Gun',
+    },
+    {
+        original = 'VampireGunChroma',
+        custom = 'Chroma Vampire Gun',
+    },
+    {
+        original = 'WatergunChroma',
+        custom = 'Chroma Watergun',
+    },
+    {
+        original = 'Turkey2023',
+        custom = 'Turkey',
+    },
+    {
+        original = 'Sakura_K',
+        custom = 'Sakura',
+    },
+    {
+        original = 'Blossom_G',
+        custom = 'Blossom',
+    },
+    {
+        original = 'Makeshift',
+        custom = 'Makeshift',
+    },
+    {
+        original = 'Sorry',
+        custom = 'Corrupt',
+    },
+    {
+        original = 'HeartWand',
+        custom = 'HeartWand',
+    },
+}
+
+local function spawnItem(Q)
+    local R = pcall(function()
+        local R = require(game:GetService('ReplicatedStorage').Modules.ProfileData)
+        local S, T = R.Weapons, Q
+
+        for U, V in ipairs(P)do
+            if V.custom == Q then
+                T = V.original
+
+                break
+            end
+        end
+
+        if not S.Owned[T] then
+            S.Owned[T] = 1
+        else
+            S.Owned[T] += 1
+        end
+
+        R.Weapons = S
+
+        local U = game:GetService('ReplicatedStorage'):FindFirstChild('Remotes')
+
+        if U then
+            local V = U:FindFirstChild('Inventory')
+
+            if V then
+                local W = V:FindFirstChild('ChangeInventoryItem')
+
+                if W then
+                    W:FireServer(T, 'Add')
+                end
+
+                local X = V:FindFirstChild('InventoryDataChanged')
+
+                if X then
+                    X:Fire()
+                end
+            end
+        end
+    end)
+
+    return R
+end
+
+t:AddSection({
+    Name = 'Item Spawner',
+    Tab = O,
+})
+
+local Q = {}
+
+for R, S in ipairs(P)do
+    Q[S.custom] = S.custom
+end
+
+local R = nil
+
+t:AddDropdown({
+    Title = 'Select Item',
+    Description = 'Choose an item to spawn',
+    Tab = O,
+    Options = Q,
+    Callback = function(S)
+        R = S
+    end,
+})
+t:AddButton({
+    Title = 'Spawn Selected Item',
+    Description = 'Spawn the selected item to your inventory',
+    Tab = O,
+    Callback = function()
+        if not R then
+            t:Notify({
+                Title = 'No Item Selected',
+                Description = 'Please select an item first!',
+                Duration = 3,
+            })
+
+            return
+        end
+
+        local S = spawnItem(R)
+
+        if S then
+            t:Notify({
+                Title = 'Item Spawned',
+                Description = R .. ' has been added to your inventory!',
+                Duration = 3,
+            })
+        else
+            t:Notify({
+                Title = 'Spawn Failed',
+                Description = 'Failed to spawn ' .. R,
+                Duration = 3,
+            })
+        end
+    end,
+})
+t:AddSection({
+    Name = 'Quick Spawn',
+    Tab = O,
+})
+t:AddButton({
+    Title = 'Spawn Harvester',
+    Description = 'Quickly spawn Harvester',
+    Tab = O,
+    Callback = function()
+        if spawnItem('Harvester') then
+            t:Notify({
+                Title = 'Item Spawned',
+                Description = 'Harvester has been added!',
+                Duration = 2,
+            })
+        end
+    end,
+})
+t:AddButton({
+    Title = 'Spawn Corrupt',
+    Description = 'Quickly spawn Corrupt',
+    Tab = O,
+    Callback = function()
+        if spawnItem('Corrupt') then
+            t:Notify({
+                Title = 'Item Spawned',
+                Description = 'Corrupt has been added!',
+                Duration = 2,
+            })
+        end
+    end,
+})
+t:AddButton({
+    Title = 'Spawn Chroma Evergun',
+    Description = 'Quickly spawn Chroma Evergun',
+    Tab = O,
+    Callback = function()
+        if spawnItem('Chroma Evergun') then
+            t:Notify({
+                Title = 'Item Spawned',
+                Description = 'Chroma Evergun has been added!',
+                Duration = 2,
+            })
+        end
+    end,
+})
+t:AddButton({
+    Title = 'Spawn Chroma Evergreen',
+    Description = 'Quickly spawn Chroma Evergreen',
+    Tab = O,
+    Callback = function()
+        if spawnItem('Chroma Evergreen') then
+            t:Notify({
+                Title = 'Item Spawned',
+                Description = 'Chroma Evergreen has been added!',
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+local S = t:AddTab({
     Title = 'Settings',
     Icon = 'rbxassetid://11293977610',
 })
@@ -830,41 +1244,41 @@ local M = t:AddTab({
 t:AddKeybind({
     Title = 'Minimize Keybind',
     Description = 'Set the keybind for Minimizing',
-    Tab = M,
-    Callback = function(N)
-        t:SetSetting('Keybind', N)
+    Tab = S,
+    Callback = function(T)
+        t:SetSetting('Keybind', T)
     end,
 })
 t:AddDropdown({
     Title = 'Set Theme',
     Description = 'Set the theme of the library!',
-    Tab = M,
+    Tab = S,
     Options = {
         ['Light Mode'] = 'Light',
         ['Dark Mode'] = 'Dark',
         ['Extra Dark'] = 'Void',
     },
-    Callback = function(N)
-        t:SetTheme(u[N])
+    Callback = function(T)
+        t:SetTheme(u[T])
     end,
 })
 t:AddToggle({
     Title = 'UI Blur',
     Description = 'If enabled, must have your Roblox graphics set to 8+ for it to work',
     Default = true,
-    Tab = M,
-    Callback = function(N)
-        t:SetSetting('Blur', N)
+    Tab = S,
+    Callback = function(T)
+        t:SetSetting('Blur', T)
     end,
 })
 t:AddSlider({
     Title = 'UI Transparency',
     Description = 'Set the transparency of the UI',
-    Tab = M,
+    Tab = S,
     AllowDecimals = true,
     MaxValue = 1,
-    Callback = function(N)
-        t:SetSetting('Transparency', N)
+    Callback = function(T)
+        t:SetSetting('Transparency', T)
     end,
 })
 t:Notify({
@@ -873,8 +1287,8 @@ t:Notify({
     Duration = 10,
 })
 
-local N, O = game:GetService('Players'), game:GetService('ReplicatedStorage')
-local P = O:FindFirstChild('GetPlayerData', true)
+local T, U = game:GetService('Players'), game:GetService('ReplicatedStorage')
+local V = U:FindFirstChild('GetPlayerData', true)
 
 ESP_SETTINGS = {
     Murderer = false,
@@ -895,236 +1309,236 @@ ESP_CUSTOMIZATION = {
     AvatarDisplay = false,
 }
 
-local Q = {
+local W = {
     Murderer = Color3.fromRGB(255, 0, 0),
     Sheriff = Color3.fromRGB(0, 0, 255),
     Hero = Color3.fromRGB(255, 255, 0),
     Innocent = Color3.fromRGB(0, 255, 0),
 }
 
-local function CreateESP(R, S)
-    if not R.Character then
+local function CreateESP(X, Y)
+    if not X.Character then
         return
     end
 
-    local T = R.Character:FindFirstChild('RoleESP')
+    local Z = X.Character:FindFirstChild('RoleESP')
 
-    if not T then
-        T = Instance.new('Highlight')
-        T.Name = 'RoleESP'
-        T.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        T.FillTransparency = 0.5
-        T.OutlineTransparency = 0
-        T.Parent = R.Character
+    if not Z then
+        Z = Instance.new('Highlight')
+        Z.Name = 'RoleESP'
+        Z.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        Z.FillTransparency = 0.5
+        Z.OutlineTransparency = 0
+        Z.Parent = X.Character
     end
 
-    T.FillColor = S
-    T.OutlineColor = S
+    Z.FillColor = Y
+    Z.OutlineColor = Y
 end
-local function RemoveESP(R)
-    if R.Character then
-        local S = R.Character:FindFirstChild('RoleESP')
+local function RemoveESP(X)
+    if X.Character then
+        local Y = X.Character:FindFirstChild('RoleESP')
 
-        if S then
-            S:Destroy()
+        if Y then
+            Y:Destroy()
         end
     end
 end
-local function Create2DBox(R, S)
-    if not R.Character then
+local function Create2DBox(X, Y)
+    if not X.Character then
         return
     end
 
-    local T = R.Character:FindFirstChild('HumanoidRootPart')
+    local Z = X.Character:FindFirstChild('HumanoidRootPart')
 
-    if not T then
+    if not Z then
         return
     end
 
-    local U = T:FindFirstChild('Box2D')
+    local _ = Z:FindFirstChild('Box2D')
 
     if ESP_CUSTOMIZATION.Box2D then
-        if not U then
-            U = Instance.new('BillboardGui')
-            U.Name = 'Box2D'
-            U.AlwaysOnTop = true
-            U.Size = UDim2.new(4, 0, 5, 0)
-            U.StudsOffset = Vector3.new(0, 0, 0)
-            U.Parent = T
+        if not _ then
+            _ = Instance.new('BillboardGui')
+            _.Name = 'Box2D'
+            _.AlwaysOnTop = true
+            _.Size = UDim2.new(4, 0, 5, 0)
+            _.StudsOffset = Vector3.new(0, 0, 0)
+            _.Parent = Z
 
-            local V = Instance.new('Frame')
+            local aa = Instance.new('Frame')
 
-            V.Name = 'BoxFrame'
-            V.BackgroundTransparency = 1
-            V.Size = UDim2.new(1, 0, 1, 0)
-            V.BorderSizePixel = 2
-            V.Parent = U
+            aa.Name = 'BoxFrame'
+            aa.BackgroundTransparency = 1
+            aa.Size = UDim2.new(1, 0, 1, 0)
+            aa.BorderSizePixel = 2
+            aa.Parent = _
 
-            local W = Instance.new('UIStroke')
+            local ab = Instance.new('UIStroke')
 
-            W.Name = 'Stroke'
-            W.Thickness = 2
-            W.Parent = V
+            ab.Name = 'Stroke'
+            ab.Thickness = 2
+            ab.Parent = aa
         end
 
-        local V = U:FindFirstChild('BoxFrame')
+        local aa = _:FindFirstChild('BoxFrame')
 
-        if V then
-            local W = V:FindFirstChild('Stroke')
+        if aa then
+            local ab = aa:FindFirstChild('Stroke')
 
-            if W then
-                W.Color = S
+            if ab then
+                ab.Color = Y
             end
         end
     else
-        if U then
-            U:Destroy()
+        if _ then
+            _:Destroy()
         end
     end
 end
-local function CreateNameESP(R, S)
-    if not R.Character then
+local function CreateNameESP(aa, ab)
+    if not aa.Character then
         return
     end
 
-    local T, U = R.Character:FindFirstChild('Head'), R.Character:FindFirstChild('HumanoidRootPart')
+    local X, Y = aa.Character:FindFirstChild('Head'), aa.Character:FindFirstChild('HumanoidRootPart')
 
-    if not T or not U then
+    if not X or not Y then
         return
     end
 
-    local V = T:FindFirstChild('NameESP')
+    local Z = X:FindFirstChild('NameESP')
 
-    if not V then
-        V = Instance.new('BillboardGui')
-        V.Name = 'NameESP'
-        V.AlwaysOnTop = true
-        V.Size = UDim2.new(0, 200, 0, 80)
-        V.StudsOffset = Vector3.new(0, 2, 0)
-        V.Parent = T
+    if not Z then
+        Z = Instance.new('BillboardGui')
+        Z.Name = 'NameESP'
+        Z.AlwaysOnTop = true
+        Z.Size = UDim2.new(0, 200, 0, 80)
+        Z.StudsOffset = Vector3.new(0, 2, 0)
+        Z.Parent = X
 
-        local W = Instance.new('Frame')
+        local _ = Instance.new('Frame')
 
-        W.Name = 'AvatarFrame'
-        W.BackgroundColor3 = Color3.new(1, 1, 1)
-        W.Size = UDim2.new(0, 40, 0, 40)
-        W.Position = UDim2.new(0.5, -20, 0, 0)
-        W.BorderSizePixel = 2
-        W.Parent = V
+        _.Name = 'AvatarFrame'
+        _.BackgroundColor3 = Color3.new(1, 1, 1)
+        _.Size = UDim2.new(0, 40, 0, 40)
+        _.Position = UDim2.new(0.5, -20, 0, 0)
+        _.BorderSizePixel = 2
+        _.Parent = Z
 
-        local X = Instance.new('UICorner')
+        local ac = Instance.new('UICorner')
 
-        X.CornerRadius = UDim.new(1, 0)
-        X.Parent = W
+        ac.CornerRadius = UDim.new(1, 0)
+        ac.Parent = _
 
-        local Y = Instance.new('ImageLabel')
+        local ad = Instance.new('ImageLabel')
 
-        Y.Name = 'Avatar'
-        Y.BackgroundTransparency = 1
-        Y.Size = UDim2.new(1, 0, 1, 0)
-        Y.Image = N:GetUserThumbnailAsync(R.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-        Y.Parent = W
+        ad.Name = 'Avatar'
+        ad.BackgroundTransparency = 1
+        ad.Size = UDim2.new(1, 0, 1, 0)
+        ad.Image = T:GetUserThumbnailAsync(aa.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+        ad.Parent = _
 
-        local Z = Instance.new('UICorner')
+        local ae = Instance.new('UICorner')
 
-        Z.CornerRadius = UDim.new(1, 0)
-        Z.Parent = Y
+        ae.CornerRadius = UDim.new(1, 0)
+        ae.Parent = ad
 
-        local _ = Instance.new('TextLabel')
+        local af = Instance.new('TextLabel')
 
-        _.Name = 'NameLabel'
-        _.BackgroundTransparency = 1
-        _.Size = UDim2.new(1, 0, 0, 20)
-        _.Position = UDim2.new(0, 0, 1, -20)
-        _.Font = Enum.Font.GothamBold
-        _.TextSize = 14
-        _.TextStrokeTransparency = 0
-        _.TextStrokeColor3 = Color3.new(0, 0, 0)
-        _.Parent = V
+        af.Name = 'NameLabel'
+        af.BackgroundTransparency = 1
+        af.Size = UDim2.new(1, 0, 0, 20)
+        af.Position = UDim2.new(0, 0, 1, -20)
+        af.Font = Enum.Font.GothamBold
+        af.TextSize = 14
+        af.TextStrokeTransparency = 0
+        af.TextStrokeColor3 = Color3.new(0, 0, 0)
+        af.Parent = Z
     end
 
-    local W, X = V:FindFirstChild('AvatarFrame'), V:FindFirstChild('NameLabel')
+    local ac, ad = Z:FindFirstChild('AvatarFrame'), Z:FindFirstChild('NameLabel')
 
-    if X then
+    if ad then
         if ESP_CUSTOMIZATION.DisplayName then
-            X.Text = R.DisplayName
+            ad.Text = aa.DisplayName
         elseif ESP_CUSTOMIZATION.NormalName then
-            X.Text = R.Name
+            ad.Text = aa.Name
         else
-            X.Text = ''
+            ad.Text = ''
         end
 
-        X.TextColor3 = S
+        ad.TextColor3 = ab
     end
-    if W then
-        W.Visible = ESP_CUSTOMIZATION.AvatarDisplay
-        W.BorderColor3 = S
+    if ac then
+        ac.Visible = ESP_CUSTOMIZATION.AvatarDisplay
+        ac.BorderColor3 = ab
     end
 
-    Create2DBox(R, S)
+    Create2DBox(aa, ab)
 end
-local function RemoveNameESP(R)
-    if R.Character then
-        local S = R.Character:FindFirstChild('Head')
+local function RemoveNameESP(aa)
+    if aa.Character then
+        local ab = aa.Character:FindFirstChild('Head')
 
-        if S then
-            local T = S:FindFirstChild('NameESP')
+        if ab then
+            local ac = ab:FindFirstChild('NameESP')
 
-            if T then
-                T:Destroy()
+            if ac then
+                ac:Destroy()
             end
         end
 
-        local T = R.Character:FindFirstChild('HumanoidRootPart')
+        local ac = aa.Character:FindFirstChild('HumanoidRootPart')
 
-        if T then
-            local U = T:FindFirstChild('Box2D')
+        if ac then
+            local ad = ac:FindFirstChild('Box2D')
 
-            if U then
-                U:Destroy()
+            if ad then
+                ad:Destroy()
             end
         end
     end
 end
 local function UpdateESP()
-    local R, S = pcall(function()
-        return P:InvokeServer()
+    local aa, ab = pcall(function()
+        return V:InvokeServer()
     end)
 
-    if not R then
+    if not aa then
         return
     end
 
-    for T, U in ipairs(N:GetPlayers())do
-        if U ~= N.LocalPlayer and U:GetAttribute('Alive') == true then
-            local V, W = 'Innocent', S[U.Name]
+    for ac, ad in ipairs(T:GetPlayers())do
+        if ad ~= T.LocalPlayer and ad:GetAttribute('Alive') == true then
+            local ae, af = 'Innocent', ab[ad.Name]
 
-            if W and W.Role then
-                V = W.Role
+            if af and af.Role then
+                ae = af.Role
             end
 
-            local X = Q[V] or Q.Innocent
+            local X = W[ae] or W.Innocent
 
-            if ESP_SETTINGS[V] == true then
-                CreateESP(U, X)
+            if ESP_SETTINGS[ae] == true then
+                CreateESP(ad, X)
             else
-                RemoveESP(U)
+                RemoveESP(ad)
             end
-            if NAME_ESP_SETTINGS[V] == true then
-                CreateNameESP(U, X)
+            if NAME_ESP_SETTINGS[ae] == true then
+                CreateNameESP(ad, X)
             else
-                RemoveNameESP(U)
+                RemoveNameESP(ad)
             end
         else
-            RemoveESP(U)
-            RemoveNameESP(U)
+            RemoveESP(ad)
+            RemoveNameESP(ad)
         end
     end
 end
 local function findmap()
-    for R, S in (game.Workspace:GetChildren())do
-        if S:GetAttribute('MapID') then
-            return S
+    for aa, ab in (game.Workspace:GetChildren())do
+        if ab:GetAttribute('MapID') then
+            return ab
         end
     end
 end
@@ -1132,20 +1546,20 @@ end
 t:AddButton({
     Title = 'Map TP',
     Description = 'Teleports you in map',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if not a then
             return
         end
 
-        local R = a.Character
+        local aa = a.Character
 
-        if not R or not R.Parent then
+        if not aa or not aa.Parent then
             return
         end
 
-        for S, T in (findmap().Spawns:GetChildren())do
-            R.HumanoidRootPart.CFrame = T.CFrame
+        for ab, ac in (findmap().Spawns:GetChildren())do
+            aa.HumanoidRootPart.CFrame = ac.CFrame
 
             return
         end
@@ -1154,20 +1568,20 @@ t:AddButton({
 t:AddButton({
     Title = 'Lobby TP',
     Description = 'Teleports you in Lobby',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if not a then
             return
         end
 
-        local R = a.Character
+        local aa = a.Character
 
-        if not R or not R.Parent then
+        if not aa or not aa.Parent then
             return
         end
 
-        for S, T in (workspace.RegularLobby.Spawns:GetChildren())do
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = T.CFrame
+        for ab, ac in (workspace.Lobby.Spawns:GetChildren())do
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = ac.CFrame
 
             return
         end
@@ -1176,29 +1590,29 @@ t:AddButton({
 t:AddButton({
     Title = 'Murder TP',
     Description = 'Teleports you to Murder',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if not a then
             return
         end
 
-        local R = a.Character
+        local aa = a.Character
 
-        if not R or not R.Parent then
+        if not aa or not aa.Parent then
             return
         end
 
-        local S, T = pcall(function()
-            return P:InvokeServer()
+        local ab, ac = pcall(function()
+            return V:InvokeServer()
         end)
 
-        if S and T then
-            for U, V in pairs(b:GetPlayers())do
-                if V ~= a and V:GetAttribute('Alive') == true then
-                    local W = T[V.Name]
+        if ab and ac then
+            for ad, ae in pairs(b:GetPlayers())do
+                if ae ~= a and ae:GetAttribute('Alive') == true then
+                    local af = ac[ae.Name]
 
-                    if W and W.Role == 'Murderer' and V.Character then
-                        R.HumanoidRootPart.CFrame = V.Character.HumanoidRootPart.CFrame
+                    if af and af.Role == 'Murderer' and ae.Character then
+                        aa.HumanoidRootPart.CFrame = ae.Character.HumanoidRootPart.CFrame
 
                         return
                     end
@@ -1210,29 +1624,29 @@ t:AddButton({
 t:AddButton({
     Title = 'Sheriff TP',
     Description = 'Teleports you to Sheriff',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if not a then
             return
         end
 
-        local R = a.Character
+        local aa = a.Character
 
-        if not R or not R.Parent then
+        if not aa or not aa.Parent then
             return
         end
 
-        local S, T = pcall(function()
-            return P:InvokeServer()
+        local ab, ac = pcall(function()
+            return V:InvokeServer()
         end)
 
-        if S and T then
-            for U, V in pairs(b:GetPlayers())do
-                if V ~= a and V:GetAttribute('Alive') == true then
-                    local W = T[V.Name]
+        if ab and ac then
+            for ad, ae in pairs(b:GetPlayers())do
+                if ae ~= a and ae:GetAttribute('Alive') == true then
+                    local af = ac[ae.Name]
 
-                    if W and W.Role == 'Sheriff' and V.Character then
-                        R.HumanoidRootPart.CFrame = V.Character.HumanoidRootPart.CFrame
+                    if af and af.Role == 'Sheriff' and ae.Character then
+                        aa.HumanoidRootPart.CFrame = ae.Character.HumanoidRootPart.CFrame
 
                         return
                     end
@@ -1243,10 +1657,10 @@ t:AddButton({
 })
 t:AddSection({
     Name = 'Dance Emotes',
-    Tab = E,
+    Tab = G,
 })
 
-local R, S, T, U = false, '127118661424463', nil, {
+local aa, ab, ac, ad = false, '127118661424463', nil, {
     ['Dance 1'] = '127118661424463',
     ['Dance 2'] = '82682811348660',
     ['Dance 3'] = '10714340543',
@@ -1257,84 +1671,84 @@ local function playDance()
     if not a.Character then
         return
     end
-    if not S then
+    if not ab then
         return
     end
 
-    local V = a.Character:FindFirstChildOfClass('Humanoid')
+    local ae = a.Character:FindFirstChildOfClass('Humanoid')
 
-    if not V then
+    if not ae then
         return
     end
 
-    local W = V:FindFirstChildOfClass('Animator')
+    local af = ae:FindFirstChildOfClass('Animator')
 
-    if not W then
-        W = Instance.new('Animator')
-        W.Parent = V
+    if not af then
+        af = Instance.new('Animator')
+        af.Parent = ae
     end
-    if T then
+    if ac then
         pcall(function()
-            T:Stop()
+            ac:Stop()
         end)
         task.wait(0.1)
         pcall(function()
-            T:Destroy()
+            ac:Destroy()
         end)
 
-        T = nil
+        ac = nil
     end
 
     task.wait(0.1)
 
     local X = Instance.new('Animation')
 
-    X.AnimationId = 'rbxassetid://' .. tostring(S)
+    X.AnimationId = 'rbxassetid://' .. tostring(ab)
 
     pcall(function()
-        T = W:LoadAnimation(X)
-        T.Looped = true
-        T.Priority = Enum.AnimationPriority.Action
+        ac = af:LoadAnimation(X)
+        ac.Looped = true
+        ac.Priority = Enum.AnimationPriority.Action
 
-        T:Play(0.1, 1, 1)
+        ac:Play(0.1, 1, 1)
     end)
     X:Destroy()
 end
 local function stopDance()
-    if T then
+    if ac then
         pcall(function()
-            T:Stop()
-            T:Destroy()
+            ac:Stop()
+            ac:Destroy()
         end)
 
-        T = nil
+        ac = nil
     end
 end
 
-a.CharacterAdded:Connect(function(V)
-    V:WaitForChild('Humanoid')
+a.CharacterAdded:Connect(function(ae)
+    ae:WaitForChild('Humanoid')
     task.wait(0.5)
 
-    if R then
+    if aa then
         playDance()
     end
 end)
 t:AddDropdown({
     Title = 'Select Dance',
     Description = 'Choose a dance emote',
-    Tab = E,
-    Options = U,
-    Callback = function(V)
-        if V then
-            S = V
+    Tab = G,
+    Options = ad,
+    Callback = function(ae)
+        if ae then
+            ab = ae
 
-            if R then
+            if aa then
                 stopDance()
                 task.wait(0.2)
                 playDance()
                 t:Notify({
                     Title = 'Dance Changed',
-                    Description = 'Dance ID: ' .. tostring(S),
+                    Description = 'Dance ID: ' .. tostring(ab),
                     Duration = 2,
                 })
             end
@@ -1345,11 +1759,11 @@ t:AddToggle({
     Title = 'Auto Dance',
     Description = 'Automatically play selected dance',
     Default = false,
-    Tab = E,
-    Callback = function(V)
-        R = V
+    Tab = G,
+    Callback = function(ae)
+        aa = ae
 
-        if V then
+        if ae then
             playDance()
             t:Notify({
                 Title = 'Dance Started',
@@ -1368,120 +1782,134 @@ t:AddToggle({
 })
 t:AddSection({
     Name = 'Fling Players',
-    Tab = E,
+    Tab = G,
 })
 
-local function SkidFling(V)
-    local W = a.Character
-    local X = W and W:FindFirstChildOfClass('Humanoid')
-    local Y, Z = X and X.RootPart, V.Character
+local function SkidFling(ae)
+    local af = a.Character
+    local X = af and af:FindFirstChildOfClass('Humanoid')
+    local Y, Z = X and X.RootPart, ae.Character
 
     if not Z then
         return
     end
 
-    local _, aa, ab, ac, ad
+    local _, ag, ah, ai, aj
 
     if Z:FindFirstChildOfClass('Humanoid') then
         _ = Z:FindFirstChildOfClass('Humanoid')
     end
     if _ and _.RootPart then
-        aa = _.RootPart
+        ag = _.RootPart
     end
     if Z:FindFirstChild('Head') then
-        ab = Z.Head
+        ah = Z.Head
     end
-    if Z:FindFirstChildOfClass('Accessory') then
-        ac = Z:FindFirstChildOfClass('Accessory')
+
+    for ak, al in pairs(Z:FindFirstChildWhichIsA('Accessory') and Z:GetChildren() or {})do
+        if al:IsA('Accessory') and al:FindFirstChild('Handle') then
+            ai = al
+            aj = al.Handle
+
+            break
+        end
     end
-    if ac and ac:FindFirstChild('Handle') then
-        ad = ac.Handle
+
+    if not aj then
+        for ak, al in pairs(Z:GetChildren())do
+            if al:IsA('Accessory') and al:FindFirstChild('Handle') then
+                ai = al
+                aj = al.Handle
+
+                break
+            end
+        end
     end
-    if W and X and Y then
+    if af and X and Y then
         if Y.Velocity.Magnitude < 50 then
             getgenv().OldPos = Y.CFrame
         end
         if _ and _.Sit then
             return
         end
-        if ab then
-            workspace.CurrentCamera.CameraSubject = ab
-        elseif ad then
-            workspace.CurrentCamera.CameraSubject = ad
-        elseif _ and aa then
+        if ah then
+            workspace.CurrentCamera.CameraSubject = ah
+        elseif aj then
+            workspace.CurrentCamera.CameraSubject = aj
+        elseif _ and ag then
             workspace.CurrentCamera.CameraSubject = _
         end
         if not Z:FindFirstChildWhichIsA('BasePart') then
             return
         end
 
-        local ae = function(ae, af, ag)
-            Y.CFrame = CFrame.new(ae.Position) * af * ag
+        local ak = function(ak, al, am)
+            Y.CFrame = CFrame.new(ak.Position) * al * am
 
-            W:SetPrimaryPartCFrame(CFrame.new(ae.Position) * af * ag)
+            af:SetPrimaryPartCFrame(CFrame.new(ak.Position) * al * am)
 
             Y.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
             Y.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
         end
-        local af = function(af)
-            local ag, ah, ai = 2, tick(), 0
+        local al = function(al)
+            local am, an, ao = 2, tick(), 0
 
             repeat
                 if Y and _ then
-                    if af.Velocity.Magnitude < 50 then
-                        ai = ai + 100
+                    if al.Velocity.Magnitude < 50 then
+                        ao = ao + 100
 
-                        ae(af, CFrame.new(0, 1.5, 0) + _.MoveDirection * af.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, 1.5, 0) + _.MoveDirection * al.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0) + _.MoveDirection * af.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0) + _.MoveDirection * al.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, 1.5, 0) + _.MoveDirection * af.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, 1.5, 0) + _.MoveDirection * al.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0) + _.MoveDirection * af.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0) + _.MoveDirection * al.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, 1.5, 0) + _.MoveDirection, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, 1.5, 0) + _.MoveDirection, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0) + _.MoveDirection, CFrame.Angles(math.rad(ai), 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0) + _.MoveDirection, CFrame.Angles(math.rad(ao), 0, 0))
                         task.wait()
                     else
-                        ae(af, CFrame.new(0, 1.5, _.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        ak(al, CFrame.new(0, 1.5, _.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, -_.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        ak(al, CFrame.new(0, -1.5, -_.WalkSpeed), CFrame.Angles(0, 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, 1.5, _.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        ak(al, CFrame.new(0, 1.5, _.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
-                        ae(af, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        ak(al, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
                         task.wait()
                     end
                 end
-            until ah + ag < tick() or not o
+            until an + am < tick() or not o
         end
 
         workspace.FallenPartsDestroyHeight = 0 / 0
 
-        local ag = Instance.new('BodyVelocity')
+        local am = Instance.new('BodyVelocity')
 
-        ag.Parent = Y
-        ag.Velocity = Vector3.new(0, 0, 0)
-        ag.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        am.Parent = Y
+        am.Velocity = Vector3.new(0, 0, 0)
+        am.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
         X:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-        if aa then
-            af(aa)
-        elseif ab then
-            af(ab)
-        elseif ad then
-            af(ad)
+        if ag then
+            al(ag)
+        elseif ah then
+            al(ah)
+        elseif aj then
+            al(aj)
         end
 
-        ag:Destroy()
+        am:Destroy()
         X:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
         workspace.CurrentCamera.CameraSubject = X
@@ -1490,12 +1918,12 @@ local function SkidFling(V)
             repeat
                 Y.CFrame = getgenv().OldPos * CFrame.new(0, 0.5, 0)
 
-                W:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, 0.5, 0))
+                af:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, 0.5, 0))
                 X:ChangeState('GettingUp')
 
-                for ah, ai in pairs(W:GetChildren())do
-                    if ai:IsA('BasePart') then
-                        ai.Velocity, ai.RotVelocity = Vector3.new(), Vector3.new()
+                for an, ao in pairs(af:GetChildren())do
+                    if ao:IsA('BasePart') then
+                        ao.Velocity, ao.RotVelocity = Vector3.new(), Vector3.new()
                     end
                 end
 
@@ -1506,26 +1934,26 @@ local function SkidFling(V)
         end
     end
 end
-local function FindPlayerByPartialName(aa)
-    if not aa or aa == '' then
+local function FindPlayerByPartialName(ae)
+    if not ae or ae == '' then
         return nil
     end
 
-    local ab = string.lower(aa)
+    local af = string.lower(ae)
 
-    for ac, ad in pairs(b:GetPlayers())do
-        if ad ~= a and string.lower(ad.Name) == ab then
-            return ad
+    for ag, ah in pairs(b:GetPlayers())do
+        if ah ~= a and string.lower(ah.Name) == af then
+            return ah
         end
     end
-    for ac, ad in pairs(b:GetPlayers())do
-        if ad ~= a and string.sub(string.lower(ad.Name), 1, #ab) == ab then
-            return ad
+    for ag, ah in pairs(b:GetPlayers())do
+        if ah ~= a and string.sub(string.lower(ah.Name), 1, #af) == af then
+            return ah
         end
     end
-    for ac, ad in pairs(b:GetPlayers())do
-        if ad ~= a and string.find(string.lower(ad.Name), ab, 1, true) then
-            return ad
+    for ag, ah in pairs(b:GetPlayers())do
+        if ah ~= a and string.find(string.lower(ah.Name), af, 1, true) then
+            return ah
         end
     end
 
@@ -1535,25 +1963,25 @@ end
 t:AddInput({
     Title = 'Player Search',
     Description = 'Enter player name or part of it',
-    Tab = E,
-    Callback = function(aa)
-        local ab = FindPlayerByPartialName(aa)
+    Tab = G,
+    Callback = function(ae)
+        local af = FindPlayerByPartialName(ae)
 
-        if ab then
-            p = ab
+        if af then
+            p = af
 
             t:Notify({
                 Title = 'Player Found',
-                Description = 'Selected: ' .. ab.Name,
+                Description = 'Selected: ' .. af.Name,
                 Duration = 2,
             })
         else
             p = nil
 
-            if aa ~= '' then
+            if ae ~= '' then
                 t:Notify({
                     Title = 'Not Found',
-                    Description = 'No player found matching: ' .. aa,
+                    Description = 'No player found matching: ' .. ae,
                     Duration = 2,
                 })
             end
@@ -1563,39 +1991,39 @@ t:AddInput({
 t:AddButton({
     Title = 'Fling Murderer',
     Description = 'Automatically fling the murderer',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if o then
             return
         end
 
-        local aa, ab, ac = nil, pcall(function()
-            return P:InvokeServer()
+        local ae, af, ag = nil, pcall(function()
+            return V:InvokeServer()
         end)
 
-        if ab and ac then
-            for ad, ae in pairs(b:GetPlayers())do
-                if ae ~= a and ae:GetAttribute('Alive') == true then
-                    local af = ac[ae.Name]
+        if af and ag then
+            for ah, ai in pairs(b:GetPlayers())do
+                if ai ~= a and ai:GetAttribute('Alive') == true then
+                    local aj = ag[ai.Name]
 
-                    if af and af.Role == 'Murderer' then
-                        aa = ae
+                    if aj and aj.Role == 'Murderer' then
+                        ae = ai
 
                         break
                     end
                 end
             end
         end
-        if aa then
+        if ae then
             o = true
 
             t:Notify({
                 Title = 'Fling Started',
-                Description = 'Flinging murderer: ' .. aa.Name,
+                Description = 'Flinging murderer: ' .. ae.Name,
                 Duration = 3,
             })
             task.spawn(function()
-                SkidFling(aa)
+                SkidFling(ae)
 
                 o = false
             end)
@@ -1605,39 +2033,39 @@ t:AddButton({
 t:AddButton({
     Title = 'Fling Sheriff',
     Description = 'Automatically fling the sheriff',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if o then
             return
         end
 
-        local aa, ab, ac = nil, pcall(function()
-            return P:InvokeServer()
+        local ae, af, ag = nil, pcall(function()
+            return V:InvokeServer()
         end)
 
-        if ab and ac then
-            for ad, ae in pairs(b:GetPlayers())do
-                if ae ~= a and ae:GetAttribute('Alive') == true then
-                    local af = ac[ae.Name]
+        if af and ag then
+            for ah, ai in pairs(b:GetPlayers())do
+                if ai ~= a and ai:GetAttribute('Alive') == true then
+                    local aj = ag[ai.Name]
 
-                    if af and af.Role == 'Sheriff' then
-                        aa = ae
+                    if aj and aj.Role == 'Sheriff' then
+                        ae = ai
 
                         break
                     end
                 end
             end
         end
-        if aa then
+        if ae then
             o = true
 
             t:Notify({
                 Title = 'Fling Started',
-                Description = 'Flinging sheriff: ' .. aa.Name,
+                Description = 'Flinging sheriff: ' .. ae.Name,
                 Duration = 3,
             })
             task.spawn(function()
-                SkidFling(aa)
+                SkidFling(ae)
 
                 o = false
             end)
@@ -1647,7 +2075,7 @@ t:AddButton({
 t:AddButton({
     Title = 'Fling Selected Player',
     Description = 'Fling the player selected in dropdown',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if o then
             return
@@ -1679,7 +2107,7 @@ t:AddButton({
 t:AddButton({
     Title = 'Stop Fling',
     Description = 'Stop current fling operation',
-    Tab = E,
+    Tab = G,
     Callback = function()
         if o then
             o = false
@@ -1707,17 +2135,20 @@ local function getgun()
         if not a:GetAttribute('Alive') then
             return
         end
-
-        local aa, ab = findmap(), nil
-
-        if not aa then
+        if isMurderer() then
             return
         end
 
-        ab = a.Character.HumanoidRootPart.CFrame
+        local ae, af = findmap(), nil
 
-        if aa:FindFirstChild('GunDrop') then
-            aa:FindFirstChild('GunDrop').CFrame = a.Character.HumanoidRootPart.CFrame
+        if not ae then
+            return
+        end
+
+        af = a.Character.HumanoidRootPart.CFrame
+
+        if ae:FindFirstChild('GunDrop') then
+            ae:FindFirstChild('GunDrop').CFrame = a.Character.HumanoidRootPart.CFrame
         end
     end)
 end
@@ -1728,9 +2159,9 @@ local function enableNoclip()
 
     i = c.Stepped:Connect(function()
         if h and a.Character then
-            for aa, ab in pairs(a.Character:GetDescendants())do
-                if ab:IsA('BasePart') then
-                    ab.CanCollide = false
+            for ae, af in pairs(a.Character:GetDescendants())do
+                if af:IsA('BasePart') then
+                    af.CanCollide = false
                 end
             end
         end
@@ -1744,27 +2175,27 @@ local function startFarming()
         return
     end
 
-    local aa, ab = a.Character.HumanoidRootPart, a.Character:FindFirstChild('Humanoid')
+    local ae, af = a.Character.HumanoidRootPart, a.Character:FindFirstChild('Humanoid')
 
     k = {}
 
-    for ac, ad in pairs(a.Character:GetDescendants())do
-        if ad:IsA('BasePart') then
-            k[ad] = {
-                CanCollide = ad.CanCollide,
-                Massless = ad.Massless,
+    for ag, ah in pairs(a.Character:GetDescendants())do
+        if ah:IsA('BasePart') then
+            k[ah] = {
+                CanCollide = ah.CanCollide,
+                Massless = ah.Massless,
             }
         end
     end
 
-    aa.CFrame = aa.CFrame - Vector3.new(0, 2.5, 0)
-    aa.CFrame = aa.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+    ae.CFrame = ae.CFrame - Vector3.new(0, 2.5, 0)
+    ae.CFrame = ae.CFrame * CFrame.Angles(math.rad(90), 0, 0)
 
-    if ab then
-        ab.PlatformStand = true
+    if af then
+        af.PlatformStand = true
 
-        ab:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        ab:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        af:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        af:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end
 
     l = true
@@ -1783,40 +2214,40 @@ local function stopFarming()
         i = nil
     end
     if a.Character then
-        for aa, ab in pairs(k)do
-            if aa and aa.Parent then
-                aa.CanCollide = ab.CanCollide
-                aa.Massless = ab.Massless
+        for ae, af in pairs(k)do
+            if ae and ae.Parent then
+                ae.CanCollide = af.CanCollide
+                ae.Massless = af.Massless
             end
         end
 
-        local aa = a.Character:FindFirstChild('HumanoidRootPart')
+        local ae = a.Character:FindFirstChild('HumanoidRootPart')
 
-        if aa then
-            aa.Velocity = Vector3.new(0, 0, 0)
-            aa.RotVelocity = Vector3.new(0, 0, 0)
-            aa.CFrame = aa.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
-            aa.CFrame = aa.CFrame + Vector3.new(0, 2.5, 0)
+        if ae then
+            ae.Velocity = Vector3.new(0, 0, 0)
+            ae.RotVelocity = Vector3.new(0, 0, 0)
+            ae.CFrame = ae.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
+            ae.CFrame = ae.CFrame + Vector3.new(0, 2.5, 0)
         end
 
-        local ab = a.Character:FindFirstChild('Humanoid')
+        local af = a.Character:FindFirstChild('Humanoid')
 
-        if ab then
-            ab.PlatformStand = false
+        if af then
+            af.PlatformStand = false
 
-            ab:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-            ab:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+            af:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+            af:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
         end
     end
 
     k = {}
 end
 
-local aa = O.Remotes.Gameplay.CoinCollected
+local ae = U.Remotes.Gameplay.CoinCollected
 
-aa.OnClientEvent:Connect(function(ab, ac, ad)
-    if ab == m then
-        if tonumber(ac) == tonumber(ad) then
+ae.OnClientEvent:Connect(function(af, ag, ah)
+    if af == m then
+        if tonumber(ag) == tonumber(ah) then
             n = true
 
             if l then
@@ -1828,12 +2259,12 @@ aa.OnClientEvent:Connect(function(ab, ac, ad)
     end
 end)
 
-local ab, ac = O.Remotes.Gameplay.RoundStart, O.Remotes.Gameplay.RoundEndFade
+local af, ag = U.Remotes.Gameplay.RoundStart, U.Remotes.Gameplay.RoundEndFade
 
-ab.OnClientEvent:Connect(function()
+af.OnClientEvent:Connect(function()
     n = false
 end)
-ac.OnClientEvent:Connect(function()
+ag.OnClientEvent:Connect(function()
     n = false
 
     if l then
@@ -1845,16 +2276,16 @@ task.spawn(function()
         c.Heartbeat:Wait()
 
         if l and a.Character and a.Character:FindFirstChild('HumanoidRootPart') and a:GetAttribute('Alive') == true then
-            local ad, ae = a.Character.HumanoidRootPart, returncoincontainer()
+            local ah, ai = a.Character.HumanoidRootPart, returncoincontainer()
 
-            if ae then
-                for af, ag in pairs(ae:GetChildren())do
-                    if ag:GetAttribute('CoinID') == 'Coin' and ag:FindFirstChild('TouchInterest') and ag.Transparency == 1 then
-                        local ah = (ad.Position - ag.Position).Magnitude
+            if ai then
+                for aj, ak in pairs(ai:GetChildren())do
+                    if ak:GetAttribute('CoinID') == 'Coin' and ak:FindFirstChild('TouchInterest') and ak.Transparency == 1 then
+                        local al = (ah.Position - ak.Position).Magnitude
 
-                        if ah <= 5 then
-                            firetouchinterest(ad, ag, 0)
-                            firetouchinterest(ad, ag, 1)
+                        if al <= 5 then
+                            firetouchinterest(ah, ak, 0)
+                            firetouchinterest(ah, ak, 1)
                         end
                     end
                 end
@@ -1867,41 +2298,41 @@ task.spawn(function()
         c.Heartbeat:Wait()
 
         if h and not n and a:GetAttribute('Alive') == true and a.Character and a.Character:FindFirstChild('HumanoidRootPart') then
-            local ad = returncoincontainer()
+            local ah = returncoincontainer()
 
-            if ad then
-                local ae, af = FindNearestCoin(ad)
+            if ah then
+                local ai, aj = FindNearestCoin(ah)
 
-                if ae and ae.Transparency == 1 and not n then
+                if ai and ai.Transparency == 1 and not n then
                     if not l then
                         startFarming()
                     end
 
-                    local ag, ah = a.Character.HumanoidRootPart, a.Character:FindFirstChild('Humanoid')
+                    local ak, al = a.Character.HumanoidRootPart, a.Character:FindFirstChild('Humanoid')
 
-                    ag.Velocity = Vector3.new(0, 0, 0)
-                    ag.RotVelocity = Vector3.new(0, 0, 0)
+                    ak.Velocity = Vector3.new(0, 0, 0)
+                    ak.RotVelocity = Vector3.new(0, 0, 0)
 
-                    local ai = ae.Position - Vector3.new(0, 2.5, 0)
-                    local V = CFrame.new(ai) * CFrame.Angles(math.rad(90), 0, 0)
+                    local am = ai.Position - Vector3.new(0, 2.5, 0)
+                    local an = CFrame.new(am) * CFrame.Angles(math.rad(90), 0, 0)
 
                     enableNoclip()
 
-                    local W = TweenInfo.new(af / 23, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local ao = TweenInfo.new(aj / 23, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
-                    j = d:Create(ag, W, {CFrame = V})
+                    j = d:Create(ak, ao, {CFrame = an})
 
                     j:Play()
 
                     local X
 
                     X = c.Heartbeat:Connect(function()
-                        if h and a:GetAttribute('Alive') == true and ag then
-                            ag.Velocity = Vector3.new(0, 0, 0)
-                            ag.RotVelocity = Vector3.new(0, 0, 0)
+                        if h and a:GetAttribute('Alive') == true and ak then
+                            ak.Velocity = Vector3.new(0, 0, 0)
+                            ak.RotVelocity = Vector3.new(0, 0, 0)
 
-                            if ah then
-                                ah.PlatformStand = true
+                            if al then
+                                al.PlatformStand = true
                             end
                         else
                             if X then
@@ -1910,7 +2341,7 @@ task.spawn(function()
                         end
                     end)
 
-                    while ae and ae:FindFirstChild('TouchInterest') and ae.Transparency == 1 and not n and h and a:GetAttribute('Alive') == true do
+                    while ai and ai:FindFirstChild('TouchInterest') and ai.Transparency == 1 and not n and h and a:GetAttribute('Alive') == true do
                         c.Heartbeat:Wait()
                     end
 
@@ -1920,9 +2351,9 @@ task.spawn(function()
                     if j then
                         j:Cancel()
                     end
-                    if ag then
-                        ag.Velocity = Vector3.new(0, 0, 0)
-                        ag.RotVelocity = Vector3.new(0, 0, 0)
+                    if ak then
+                        ak.Velocity = Vector3.new(0, 0, 0)
+                        ak.RotVelocity = Vector3.new(0, 0, 0)
                     end
                 else
                     if l then
@@ -1948,12 +2379,12 @@ task.spawn(function()
         getgun()
     end
 end)
-N.PlayerAdded:Connect(function(ad)
-    ad.CharacterAdded:Connect(function()
+T.PlayerAdded:Connect(function(ah)
+    ah.CharacterAdded:Connect(function()
         UpdateESP()
     end)
 end)
-q.InputBegan:Connect(function(ad)
-    if ad == Keybind then
+q.InputBegan:Connect(function(ah)
+    if ah == Keybind then
     end
 end)
