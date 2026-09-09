@@ -73,7 +73,7 @@ ps.PlayerAdded:Connect(trackPlayer)
 
 UserInputService = game:GetService('UserInputService')
 success, Library = pcall(function()
-        return loadstring(game:HttpGet('https://raw.githubusercontent.com/tontov/vertex/refs/heads/main/main.lua'))()
+        return loadstring(game:HttpGet('https://raw.githubusercontent.com/tontov/ScriptLibrary/refs/heads/main/Main'))()
 end)
 
 if not success then
