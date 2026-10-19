@@ -18,7 +18,7 @@ noclipConnection = nil
 currentTween = nil
 originalPartProperties = {}
 farmingActive = false
-CurrentCoinType = 'Coin'
+CurrentCoinType = 'Candy'
 allCoinsCollected = false
 currentCoinsCollected = 0
 maxCoinsInRound = 0
@@ -1559,7 +1559,7 @@ local function FindNearestCoin(a)
     local b, c = nil, math.huge
 
     for d, e in pairs(a:GetChildren())do
-        if e:GetAttribute('CoinID') == 'Coin' and e:FindFirstChild('TouchInterest') and e.Transparency == 1 then
+        if e:GetAttribute('CoinID') == 'Candy' and e:FindFirstChild('TouchInterest') and e.Transparency == 1 then
             if p.Character and p.Character:FindFirstChild('HumanoidRootPart') then
                 local f = (p.Character.HumanoidRootPart.Position - e.Position).Magnitude
 
@@ -6248,7 +6248,7 @@ task.spawn(function()
 
             if k then
                 for l, m in pairs(k:GetChildren())do
-                    if m:GetAttribute('CoinID') == 'Coin' and m:FindFirstChild('TouchInterest') and m.Transparency == 1 then
+                    if m:GetAttribute('CoinID') == 'Candy' and m:FindFirstChild('TouchInterest') and m.Transparency == 1 then
                         local n = (j.Position - m.Position).Magnitude
 
                         if n <= 7.5 then
