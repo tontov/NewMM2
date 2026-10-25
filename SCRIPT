@@ -1,3 +1,7 @@
+if game.PlaceId ~= 142823291 then
+    game.Players.LocalPlayer:Kick("our script works only in mm2")
+end
+
 if _G.Heartagram then
     return
 end
